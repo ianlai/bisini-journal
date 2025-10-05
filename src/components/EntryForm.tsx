@@ -15,6 +15,9 @@ export default function EntryForm({ categories, onAdd, onRemove, selectedDate, e
   const [date, setDate] = useState(selectedDate || today());
   const [categoryTexts, setCategoryTexts] = useState<Record<string, string>>({});
   const [categoryDone, setCategoryDone] = useState<Record<string, boolean>>({});
+  // Original form state - moved to top to avoid conditional hooks
+  const [category, setCategory] = useState(categories[0] ?? "");
+  const [text, setText] = useState("");
 
   // Initialize category texts from existing entries
   useEffect(() => {
@@ -35,6 +38,12 @@ export default function EntryForm({ categories, onAdd, onRemove, selectedDate, e
       setDate(selectedDate);
     }
   }, [selectedDate]);
+
+  // Update category when categories change (for original form)
+  useEffect(() => {
+    if (!categories.includes(category) && categories[0])
+      setCategory(categories[0]);
+  }, [categories, category]);
 
   const updateCategoryText = (category: string, text: string) => {
     setCategoryTexts(prev => ({ ...prev, [category]: text }));
@@ -98,13 +107,6 @@ export default function EntryForm({ categories, onAdd, onRemove, selectedDate, e
   }
 
   // Original form for other tabs
-  const [category, setCategory] = useState(categories[0] ?? "");
-  const [text, setText] = useState("");
-
-  useEffect(() => {
-    if (!categories.includes(category) && categories[0])
-      setCategory(categories[0]);
-  }, [categories]);
 
   const submitOriginal = () => {
     if (!text.trim() || !category) return;

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import EntryForm from "@/components/EntryForm";
 import DailyList from "@/components/DailyList";
 import CategoryView from "@/components/CategoryView";
@@ -59,7 +59,6 @@ export default function Home() {
     setDate(d.date);
   };
 
-  const dailyEntries = useMemo(() => entries.filter(e => e.date === date), [entries, date]);
 
   return (
     <main className="p-5 max-w-4xl mx-auto space-y-4">
