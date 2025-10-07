@@ -61,43 +61,89 @@ export default function Home() {
 
 
   return (
-    <main className="p-5 max-w-4xl mx-auto space-y-4">
-      <header className="flex items-center gap-3">
-        <h1 className="text-2xl font-bold">Bisini Journal</h1>
-        <nav className="ml-auto flex gap-2">
-          {(["daily","category","tracker"] as const).map(t=>(
-            <button key={t} onClick={()=>setTab(t)}
-              className={`px-3 py-1 rounded-full border ${tab===t? "border-fuchsia-500" : "border-neutral-300"}`}>
-              {t==="daily"?"每日":t==="category"?"分類":"追蹤"}
-            </button>
-          ))}
-        </nav>
-      </header>
+    <main className="min-h-screen p-6 max-w-6xl mx-auto">
+      <div className="animate-fade-in">
+        <header className="card p-6 mb-8 shadow-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold text-xl">B</span>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  Bisini Journal
+                </h1>
+                <p className="text-muted-foreground text-sm">Track your daily progress and habits</p>
+              </div>
+            </div>
+            <nav className="flex gap-2">
+              {(["daily","category","tracker"] as const).map(t=>(
+                <button key={t} onClick={()=>setTab(t)}
+                  className={`btn px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                    tab===t 
+                      ? "btn-primary shadow-md" 
+                      : "btn-secondary hover:shadow-sm"
+                  }`}>
+                  {t==="daily"?"📅 每日":t==="category"?"📂 分類":"📊 追蹤"}
+                </button>
+              ))}
+            </nav>
+          </div>
+        </header>
 
       {tab==="daily" && (
-        <>
-          <div className="flex items-center gap-2">
-            <button aria-label="前一天" className="px-2 py-1" onClick={()=>{
-              const d=new Date(date+"T00:00:00"); d.setDate(d.getDate()-1); setDate(d.toISOString().slice(0,10));
-            }}>◀</button>
-            <span className="text-sm opacity-70">選擇日期：</span>
-            <input type="date" value={date} onChange={e=>setDate(e.target.value)} className="border rounded px-2 py-1"/>
-            <button aria-label="後一天" className="px-2 py-1" onClick={()=>{
-              const d=new Date(date+"T00:00:00"); d.setDate(d.getDate()+1); setDate(d.toISOString().slice(0,10));
-            }}>▶</button>
+        <div className="space-y-6 animate-slide-in">
+          <div className="card p-4">
+            <div className="flex items-center justify-center gap-4">
+              <button 
+                aria-label="前一天" 
+                className="btn btn-secondary w-10 h-10 rounded-full hover:scale-105" 
+                onClick={()=>{
+                  const d=new Date(date+"T00:00:00"); d.setDate(d.getDate()-1); setDate(d.toISOString().slice(0,10));
+                }}
+              >
+                ◀
+              </button>
+              <div className="flex flex-col items-center gap-2">
+                <span className="text-sm font-medium text-muted-foreground">選擇日期</span>
+                <div className="relative">
+                  <input 
+                    type="date" 
+                    value={date} 
+                    onChange={e=>setDate(e.target.value)} 
+                    className="input text-center font-medium pl-10 pr-10 date-center"
+                    style={{ textAlign: 'center', paddingLeft: '2.5rem', paddingRight: '2.5rem' }}
+                  />
+                </div>
+              </div>
+              <button 
+                aria-label="後一天" 
+                className="btn btn-secondary w-10 h-10 rounded-full hover:scale-105" 
+                onClick={()=>{
+                  const d=new Date(date+"T00:00:00"); d.setDate(d.getDate()+1); setDate(d.toISOString().slice(0,10));
+                }}
+              >
+                ▶
+              </button>
+            </div>
           </div>
           <EntryForm categories={categories} onAdd={add} onRemove={remove} selectedDate={date} existingEntries={entries} />
           <DailyList entries={entries} date={date} />
-        </>
+        </div>
       )}
 
       {tab==="category" && (
-        <CategoryView categories={categories} entries={entries} />
+        <div className="animate-slide-in">
+          <CategoryView categories={categories} entries={entries} />
+        </div>
       )}
 
       {tab==="tracker" && (
-        <TrackerView categories={categories} entries={entries} />
+        <div className="animate-slide-in">
+          <TrackerView categories={categories} entries={entries} />
+        </div>
       )}
+      </div>
     </main>
   );
 }

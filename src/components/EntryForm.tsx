@@ -71,37 +71,51 @@ export default function EntryForm({ categories, onAdd, onRemove, selectedDate, e
   // If we're in daily mode with selectedDate, show category text boxes
   if (selectedDate) {
     return (
-      <section className="space-y-4">
-        <div className="space-y-3">
-          {categories.map(category => (
-            <div key={category} className="space-y-1">
-              <label className="text-sm font-medium opacity-70">{category}</label>
-              <div className="grid grid-cols-[1fr_auto] gap-2 items-start">
-                <textarea
-                  value={categoryTexts[category] || ""}
-                  onChange={(e) => updateCategoryText(category, e.target.value)}
-                  placeholder={`今天在${category}方面做了什麼？`}
-                  className="w-full border rounded px-3 py-2 min-h-[60px] resize-none"
-                  rows={2}
-                />
+      <section className="card p-6 space-y-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+            <span className="text-white text-sm">✏️</span>
+          </div>
+          <h2 className="text-xl font-semibold">每日記錄</h2>
+        </div>
+        
+        <div className="grid gap-6">
+          {categories.map((category, index) => (
+            <div key={category} className="card p-4 space-y-3 animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+              <div className="flex items-center justify-between">
+                <label className="text-lg font-medium text-foreground">{category}</label>
                 <button
                   type="button"
                   aria-label="toggle done"
                   onClick={() => toggleDone(category)}
-                  className={`h-9 w-9 mt-1 rounded-md border flex items-center justify-center text-lg ${categoryDone[category] ? "bg-fuchsia-600 text-white" : "bg-white"}`}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold transition-all duration-200 hover:scale-105 ${
+                    categoryDone[category] 
+                      ? "bg-gradient-to-br from-green-500 to-emerald-500 text-white shadow-lg" 
+                      : "bg-muted border-2 border-dashed border-muted-foreground/30 hover:border-green-500/50"
+                  }`}
                 >
-                  {categoryDone[category] ? "✓" : " "}
+                  {categoryDone[category] ? "✓" : "+"}
                 </button>
               </div>
+              <textarea
+                value={categoryTexts[category] || ""}
+                onChange={(e) => updateCategoryText(category, e.target.value)}
+                placeholder={`今天在${category}方面做了什麼？`}
+                className="input min-h-[80px] resize-none text-base leading-relaxed"
+                rows={3}
+              />
             </div>
           ))}
         </div>
-        <button
-          onClick={submit}
-          className="bg-fuchsia-600 text-white rounded px-4 py-2 hover:bg-fuchsia-700 transition-colors"
-        >
-          儲存 {date} 的內容
-        </button>
+        
+        <div className="flex justify-center pt-4">
+          <button
+            onClick={submit}
+            className="btn btn-primary px-8 py-3 text-base font-medium shadow-lg hover:shadow-xl"
+          >
+            💾 儲存 {date} 的內容
+          </button>
+        </div>
       </section>
     );
   }
@@ -115,35 +129,53 @@ export default function EntryForm({ categories, onAdd, onRemove, selectedDate, e
   };
 
   return (
-    <section className="grid gap-2 md:grid-cols-[180px_200px_1fr_auto]">
-      <input
-        type="date"
-        value={date}
-        onChange={(e) => setDate(e.target.value)}
-        className="border rounded px-2 py-1"
-      />
-      <select
-        value={category}
-        onChange={(e) => setCategory(e.target.value)}
-        className="border rounded px-2 py-1"
-      >
-        {categories.map((c) => (
-          <option key={c}>{c}</option>
-        ))}
-      </select>
-      <input
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && submitOriginal()}
-        placeholder="今天做了什麼？(Enter 新增)"
-        className="border rounded px-2 py-1"
-      />
-      <button
-        onClick={submitOriginal}
-        className="bg-fuchsia-600 text-white rounded px-3"
-      >
-        新增
-      </button>
+    <section className="card p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
+          <span className="text-white text-sm">➕</span>
+        </div>
+        <h2 className="text-xl font-semibold">快速新增</h2>
+      </div>
+      
+      <div className="grid gap-4 md:grid-cols-[180px_200px_1fr_auto] items-end">
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-muted-foreground">日期</label>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="input"
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-muted-foreground">分類</label>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="input"
+          >
+            {categories.map((c) => (
+              <option key={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-muted-foreground">內容</label>
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submitOriginal()}
+            placeholder="今天做了什麼？(Enter 新增)"
+            className="input"
+          />
+        </div>
+        <button
+          onClick={submitOriginal}
+          className="btn btn-primary px-6 py-2.5 font-medium"
+        >
+          ➕ 新增
+        </button>
+      </div>
     </section>
   );
 }
