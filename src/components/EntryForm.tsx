@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { today } from "@/lib/date";
 import type { Entry } from "@/lib/types";
 
@@ -15,6 +15,8 @@ export default function EntryForm({ categories, onAdd, onRemove, selectedDate, e
   const [date, setDate] = useState(selectedDate || today());
   const [categoryTexts, setCategoryTexts] = useState<Record<string, string>>({});
   const [categoryDone, setCategoryDone] = useState<Record<string, boolean>>({});
+  // Per-category debounce timers for autosave in daily mode
+  const saveTimersRef = useRef<Record<string, number>>({});
   // Original form state - moved to top to avoid conditional hooks
   const [category, setCategory] = useState(categories[0] ?? "");
   const [text, setText] = useState("");
@@ -45,14 +47,39 @@ export default function EntryForm({ categories, onAdd, onRemove, selectedDate, e
       setCategory(categories[0]);
   }, [categories, category]);
 
+  // Save helper used by autosave flows
+  const saveForCategory = (categoryKey: string, nextText?: string, nextDone?: boolean) => {
+    const t = (nextText !== undefined ? nextText : categoryTexts[categoryKey] || "").trim();
+    const d = nextDone !== undefined ? nextDone : !!categoryDone[categoryKey];
+    const existed = existingEntries.some(e => e.category === categoryKey && e.date === date);
+    if (t || d) {
+      onAdd({ date, category: categoryKey, text: t, done: d });
+    } else if (existed && onRemove) {
+      onRemove({ date, category: categoryKey });
+    }
+  };
+
   const updateCategoryText = (category: string, text: string) => {
     setCategoryTexts(prev => ({ ...prev, [category]: text }));
     // auto toggle on when user types something
+    const willBeDone = text.trim() ? true : categoryDone[category];
     if (text.trim()) setCategoryDone(prev => ({ ...prev, [category]: true }));
+
+    // Debounce save for this category
+    const timers = saveTimersRef.current;
+    if (timers[category]) window.clearTimeout(timers[category]);
+    timers[category] = window.setTimeout(() => {
+      saveForCategory(category, text, willBeDone);
+    }, 500);
   };
 
   const toggleDone = (category: string) => {
-    setCategoryDone(prev => ({ ...prev, [category]: !prev[category] }));
+    setCategoryDone(prev => {
+      const newDone = !prev[category];
+      // Immediate save on toggle using latest text + new done value
+      saveForCategory(category, categoryTexts[category] || "", newDone);
+      return { ...prev, [category]: newDone };
+    });
   };
 
   const submit = () => {
