@@ -4,8 +4,14 @@ import EntryForm from "@/components/EntryForm";
 import DailyList from "@/components/DailyList";
 import CategoryView from "@/components/CategoryView";
 import TrackerView from "@/components/TrackerView";
+import DatePickerRow from "@/components/DatePickerRow";
 import type { Entry } from "@/lib/types";
-import { loadEntries, saveEntries, loadCategories, saveCategories } from "@/lib/storage";
+import {
+  loadEntries,
+  saveEntries,
+  loadCategories,
+  saveCategories,
+} from "@/lib/storage";
 import { today } from "@/lib/date";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -13,7 +19,7 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 export default function Home() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [tab, setTab] = useState<"daily"|"category"|"tracker">("daily");
+  const [tab, setTab] = useState<"daily" | "category" | "tracker">("daily");
   const [date, setDate] = useState<string>(today());
   // keyboard nav for daily tab
   useEffect(() => {
@@ -24,7 +30,7 @@ export default function Home() {
       const d = new Date(date + "T00:00:00");
       if (e.key === "ArrowLeft") d.setDate(d.getDate() - 1);
       if (e.key === "ArrowRight") d.setDate(d.getDate() + 1);
-      setDate(d.toISOString().slice(0,10));
+      setDate(d.toISOString().slice(0, 10));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -34,31 +40,42 @@ export default function Home() {
   useEffect(() => {
     const loaded = loadEntries();
     // one-time migration: if done is undefined but text exists, set done = true
-    const migrated = loaded.map(e => (
-      typeof e.done === "boolean" ? e : { ...e, done: !!(e.text && e.text.trim()) }
-    ));
+    const migrated = loaded.map((e) =>
+      typeof e.done === "boolean"
+        ? e
+        : { ...e, done: !!(e.text && e.text.trim()) }
+    );
     setEntries(migrated);
     const cs = loadCategories();
-    setCategories(cs.length ? cs : ["營養品","演算法","英文","自媒體"]);
+    setCategories(cs.length ? cs : ["營養品", "演算法", "英文", "自媒體"]);
   }, []);
   useEffect(() => saveEntries(entries), [entries]);
   useEffect(() => saveCategories(categories), [categories]);
 
-  const add = (d:{date:string; category:string; text:string; done?: boolean}) => {
+  const add = (d: {
+    date: string;
+    category: string;
+    text: string;
+    done?: boolean;
+  }) => {
     const e: Entry = { id: uid(), ...d };
-    setEntries(prev => {
+    setEntries((prev) => {
       // Remove existing entry for same date and category
-      const filtered = prev.filter(existing => !(existing.date === d.date && existing.category === d.category));
+      const filtered = prev.filter(
+        (existing) =>
+          !(existing.date === d.date && existing.category === d.category)
+      );
       return [e, ...filtered];
     });
     setDate(d.date); // 讓每日視圖立刻顯示
   };
 
-  const remove = (d:{date:string; category:string}) => {
-    setEntries(prev => prev.filter(e => !(e.date === d.date && e.category === d.category)));
+  const remove = (d: { date: string; category: string }) => {
+    setEntries((prev) =>
+      prev.filter((e) => !(e.date === d.date && e.category === d.category))
+    );
     setDate(d.date);
   };
-
 
   return (
     <main className="min-h-screen p-6 max-w-6xl mx-auto">
@@ -73,76 +90,93 @@ export default function Home() {
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                   Bisini Journal
                 </h1>
-                <p className="text-muted-foreground text-sm">Track your daily progress and habits</p>
+                <p className="text-muted-foreground text-sm">
+                  Track your daily progress and habits
+                </p>
               </div>
             </div>
-            <nav className="flex gap-2">
-              {(["daily","category","tracker"] as const).map(t=>(
-                <button key={t} onClick={()=>setTab(t)}
+            <nav
+              className="flex flex-col sm:flex-row gap-2 sm:gap-3 
+               sm:justify-end sm:items-center
+               sm:[&>button]:min-w-[120px] sm:[&>button]:grow-0"
+            >
+              {(["daily", "category", "tracker"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
                   className={`btn px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                    tab===t 
-                      ? "btn-primary shadow-md" 
+                    tab === t
+                      ? "btn-primary shadow-md"
                       : "btn-secondary hover:shadow-sm"
-                  }`}>
-                  {t==="daily"?"📅 每日":t==="category"?"📂 分類":"📊 追蹤"}
+                  }`}
+                >
+                  {t === "daily"
+                    ? "📅 每日"
+                    : t === "category"
+                    ? "📂 分類"
+                    : "📊 追蹤"}
                 </button>
               ))}
             </nav>
           </div>
         </header>
 
-      {tab==="daily" && (
-        <div className="space-y-6 animate-slide-in">
-          <div className="card p-4">
-            <div className="flex items-center justify-center gap-4">
-              <button 
-                aria-label="前一天" 
-                className="btn btn-secondary w-10 h-10 rounded-full hover:scale-105" 
-                onClick={()=>{
-                  const d=new Date(date+"T00:00:00"); d.setDate(d.getDate()-1); setDate(d.toISOString().slice(0,10));
-                }}
-              >
-                ◀
-              </button>
-              <div className="flex flex-col items-center gap-2">
-                <span className="text-sm font-medium text-muted-foreground">選擇日期</span>
-                <div className="relative">
-                  <input 
-                    type="date" 
-                    value={date} 
-                    onChange={e=>setDate(e.target.value)} 
-                    className="input text-center font-medium pl-10 pr-10 date-center"
-                    style={{ textAlign: 'center', paddingLeft: '2.5rem', paddingRight: '2.5rem' }}
-                  />
+        {tab === "daily" && (
+          <div className="space-y-6 animate-slide-in">
+            <div className="card p-4">
+              <div className="flex items-center justify-center gap-4">
+                <button
+                  aria-label="前一天"
+                  className="btn btn-secondary w-10 h-10 rounded-full hover:scale-105"
+                  onClick={() => {
+                    const d = new Date(date + "T00:00:00");
+                    d.setDate(d.getDate() - 1);
+                    setDate(d.toISOString().slice(0, 10));
+                  }}
+                >
+                  ◀
+                </button>
+                <div className="flex flex-col items-center gap-2">
+                  <span className="text-sm font-medium text-muted-foreground">
+                    選擇日期
+                  </span>
+                  <DatePickerRow date={date} setDate={setDate} />
                 </div>
+                <button
+                  aria-label="後一天"
+                  className="btn btn-secondary w-10 h-10 rounded-full hover:scale-105"
+                  onClick={() => {
+                    const d = new Date(date + "T00:00:00");
+                    d.setDate(d.getDate() + 1);
+                    setDate(d.toISOString().slice(0, 10));
+                  }}
+                >
+                  ▶
+                </button>
               </div>
-              <button 
-                aria-label="後一天" 
-                className="btn btn-secondary w-10 h-10 rounded-full hover:scale-105" 
-                onClick={()=>{
-                  const d=new Date(date+"T00:00:00"); d.setDate(d.getDate()+1); setDate(d.toISOString().slice(0,10));
-                }}
-              >
-                ▶
-              </button>
             </div>
+            <EntryForm
+              categories={categories}
+              onAdd={add}
+              onRemove={remove}
+              selectedDate={date}
+              existingEntries={entries}
+            />
+            <DailyList entries={entries} date={date} />
           </div>
-          <EntryForm categories={categories} onAdd={add} onRemove={remove} selectedDate={date} existingEntries={entries} />
-          <DailyList entries={entries} date={date} />
-        </div>
-      )}
+        )}
 
-      {tab==="category" && (
-        <div className="animate-slide-in">
-          <CategoryView categories={categories} entries={entries} />
-        </div>
-      )}
+        {tab === "category" && (
+          <div className="animate-slide-in">
+            <CategoryView categories={categories} entries={entries} />
+          </div>
+        )}
 
-      {tab==="tracker" && (
-        <div className="animate-slide-in">
-          <TrackerView categories={categories} entries={entries} />
-        </div>
-      )}
+        {tab === "tracker" && (
+          <div className="animate-slide-in">
+            <TrackerView categories={categories} entries={entries} />
+          </div>
+        )}
       </div>
     </main>
   );

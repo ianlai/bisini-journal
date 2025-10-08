@@ -64,7 +64,7 @@
 }
 
 body {
-  background: linear-gradient(135deg, var(--background) 0%, #f1f5f9 100%);
+  background: var(--background);
   color: var(--foreground);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
@@ -158,9 +158,10 @@ body {
   height: 2.5rem;
   width: 100%;
   border-radius: var(--radius);
-  border: 1px solid var(--input);
-  background: var(--background);
-  padding: 0.5rem 0.75rem;
+  border: 1px solid #1a2234;
+  background: #162649;                     
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+  padding-block: 0.5rem;   /* ← vertical only */
   font-size: 0.875rem;
   transition: all 0.2s ease-in-out;
 }
@@ -168,7 +169,7 @@ body {
 .input:focus {
   outline: none;
   border-color: var(--ring);
-  box-shadow: 0 0 0 2px rgb(139 92 246 / 0.2);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.6), 0 0 0 2px rgb(139 92 246 / 0.3);
 }
 
 /* Date input centering */
@@ -259,4 +260,10 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 
 .animate-slide-in {
   animation: slideIn 0.3s ease-out;
+}
+
+/* 統一用自家的 SVG，不用原生 indicator 的點擊區 */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  pointer-events: none;
 }
