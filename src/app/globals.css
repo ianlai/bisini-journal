@@ -262,8 +262,18 @@ input[type="date"]::-webkit-datetime-edit-year-field {
   animation: slideIn 0.3s ease-out;
 }
 
-/* 統一用自家的 SVG，不用原生 indicator 的點擊區 */
+
+/* normalize mobile date input */
+input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  font-size: 16px; /* prevent iOS zoom */
+}
+
+/* hide the native calendar icon; wrapper handles clicks */
 input[type="date"]::-webkit-calendar-picker-indicator {
   opacity: 0;
   pointer-events: none;
 }
+/* remove any old date-center hacks that override padding */
+textarea { padding: 0.75rem 1rem; line-height: 1.5; font-size: 16px; } /* py-3 px-4 */

@@ -48,7 +48,13 @@ export default function DatePickerRow({
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="input text-center font-medium pl-8 pr-4 date-center pointer-events-none"
+          className="
+          input pointer-events-none font-medium text-center tabular-nums
+          h-11 text-base
+          pl-[40px] pr-5        /* mobile spacing for icon + localized date */
+          sm:pl-10 sm:pr-0      /* desktop/tablet overrides */
+          rounded-xl
+        "
         />
 
         {/* left calendar icon for visual hint */}
