@@ -80,7 +80,7 @@ export default function Home() {
   return (
     <main className="min-h-screen p-6 max-w-6xl mx-auto">
       <div className="animate-fade-in">
-        <header className="card p-6 mb-8 shadow-lg">
+        <header className="card p-4 sm:p-6 mb-6 sm:mb-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
@@ -95,28 +95,36 @@ export default function Home() {
                 </p>
               </div>
             </div>
-            <nav
-              className="flex flex-col sm:flex-row gap-2 sm:gap-3 
-               sm:justify-end sm:items-center
-               sm:[&>button]:min-w-[120px] sm:[&>button]:grow-0"
-            >
-              {(["daily", "category", "tracker"] as const).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setTab(t)}
-                  className={`btn px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                    tab === t
-                      ? "btn-primary shadow-md"
-                      : "btn-secondary hover:shadow-sm"
-                  }`}
-                >
-                  {t === "daily"
-                    ? "📅 每日"
-                    : t === "category"
-                    ? "📂 分類"
-                    : "📊 追蹤"}
-                </button>
-              ))}
+            <nav className="w-full">
+              <div
+                className="flex flex-col sm:flex-row gap-2 sm:gap-3
+                  items-center sm:justify-end
+                  [&>button]:w-[120px] sm:[&>button]:w-[120px]  /* same width */
+  "
+              >
+                {(["daily", "category", "tracker"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTab(t)}
+                    className={`
+          btn h-10 text-sm leading-none px-3
+          inline-flex items-center justify-center gap-2
+          grow-0 shrink-0 whitespace-nowrap
+          ${
+            tab === t
+              ? "btn-primary shadow-md"
+              : "btn-secondary hover:shadow-sm"
+          }
+        `}
+                  >
+                    {t === "daily"
+                      ? "📅 每日"
+                      : t === "category"
+                      ? "📂 分類"
+                      : "📊 追蹤"}
+                  </button>
+                ))}
+              </div>
             </nav>
           </div>
         </header>
