@@ -80,14 +80,16 @@ export default function Home() {
   return (
     <main className="min-h-screen p-6 max-w-6xl mx-auto">
       <div className="animate-fade-in">
-        <header className="card p-4 sm:p-6 mb-6 sm:mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+        <header className="card p-4 sm:p-6 mb-4 shadow-lg">
+          {/* grid: left takes remaining width (wraps), right is auto width */}
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 sm:gap-6 items-start">
+            {/* left: logo + texts; allow wrapping on mobile */}
+            <div className="flex items-start gap-3 sm:gap-4 min-w-0">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg shrink-0">
                 <span className="text-white font-bold text-xl">B</span>
               </div>
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <div className="min-w-0">
+                <h1 className="text-3xl font-bold leading-tight bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent sm:whitespace-nowrap">
                   Bisini Journal
                 </h1>
                 <p className="text-muted-foreground text-sm">
@@ -95,42 +97,36 @@ export default function Home() {
                 </p>
               </div>
             </div>
-            <nav className="w-full">
-              <div
-                className="flex flex-col sm:flex-row gap-2 sm:gap-3
-                  items-center sm:justify-end
-                  [&>button]:w-[120px] sm:[&>button]:w-[120px]  /* same width */
-  "
-              >
-                {(["daily", "category", "tracker"] as const).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setTab(t)}
-                    className={`
-          btn h-10 text-sm leading-none px-3
-          inline-flex items-center justify-center gap-2
-          grow-0 shrink-0 whitespace-nowrap
-          ${
-            tab === t
-              ? "btn-primary shadow-md"
-              : "btn-secondary hover:shadow-sm"
-          }
-        `}
-                  >
-                    {t === "daily"
-                      ? "📅 每日"
-                      : t === "category"
-                      ? "📂 分類"
-                      : "📊 追蹤"}
-                  </button>
-                ))}
-              </div>
+
+            {/* right: tabs — vertical on mobile, horizontal on ≥sm; sticks to the right */}
+            <nav className="flex flex-col gap-2 sm:flex-row sm:gap-3 self-start">
+              {(["daily", "category", "tracker"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`btn h-10 px-3 text-sm leading-none
+                      inline-flex items-center justify-center gap-2
+                      whitespace-nowrap grow-0 shrink-0
+                      [&]:min-w-[118px]
+                      ${
+                        tab === t
+                          ? "btn-primary shadow-md"
+                          : "btn-secondary hover:shadow-sm"
+                      }`}
+                >
+                  {t === "daily"
+                    ? "📅 每日"
+                    : t === "category"
+                    ? "📂 分類"
+                    : "📊 追蹤"}
+                </button>
+              ))}
             </nav>
           </div>
         </header>
 
         {tab === "daily" && (
-          <div className="space-y-6 animate-slide-in">
+          <div className="space-y-4 animate-slide-in">
             <div className="card p-4">
               <div className="flex items-center justify-center gap-4">
                 <button

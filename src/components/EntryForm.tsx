@@ -5,15 +5,28 @@ import type { Entry } from "@/lib/types";
 
 type Props = {
   categories: string[];
-  onAdd: (d: { date: string; category: string; text: string; done?: boolean }) => void;
+  onAdd: (d: {
+    date: string;
+    category: string;
+    text: string;
+    done?: boolean;
+  }) => void;
   onRemove?: (d: { date: string; category: string }) => void;
   selectedDate?: string;
   existingEntries?: Entry[];
 };
 
-export default function EntryForm({ categories, onAdd, onRemove, selectedDate, existingEntries = [] }: Props) {
+export default function EntryForm({
+  categories,
+  onAdd,
+  onRemove,
+  selectedDate,
+  existingEntries = [],
+}: Props) {
   const [date, setDate] = useState(selectedDate || today());
-  const [categoryTexts, setCategoryTexts] = useState<Record<string, string>>({});
+  const [categoryTexts, setCategoryTexts] = useState<Record<string, string>>(
+    {}
+  );
   const [categoryDone, setCategoryDone] = useState<Record<string, boolean>>({});
   // Per-category debounce timers for autosave in daily mode
   const saveTimersRef = useRef<Record<string, number>>({});
@@ -25,8 +38,10 @@ export default function EntryForm({ categories, onAdd, onRemove, selectedDate, e
   useEffect(() => {
     const texts: Record<string, string> = {};
     const dones: Record<string, boolean> = {};
-    categories.forEach(cat => {
-      const existing = existingEntries.find(e => e.category === cat && e.date === date);
+    categories.forEach((cat) => {
+      const existing = existingEntries.find(
+        (e) => e.category === cat && e.date === date
+      );
       texts[cat] = existing?.text || "";
       dones[cat] = existing?.done ?? false;
     });
@@ -48,10 +63,18 @@ export default function EntryForm({ categories, onAdd, onRemove, selectedDate, e
   }, [categories, category]);
 
   // Save helper used by autosave flows
-  const saveForCategory = (categoryKey: string, nextText?: string, nextDone?: boolean) => {
-    const t = (nextText !== undefined ? nextText : categoryTexts[categoryKey] || "").trim();
+  const saveForCategory = (
+    categoryKey: string,
+    nextText?: string,
+    nextDone?: boolean
+  ) => {
+    const t = (
+      nextText !== undefined ? nextText : categoryTexts[categoryKey] || ""
+    ).trim();
     const d = nextDone !== undefined ? nextDone : !!categoryDone[categoryKey];
-    const existed = existingEntries.some(e => e.category === categoryKey && e.date === date);
+    const existed = existingEntries.some(
+      (e) => e.category === categoryKey && e.date === date
+    );
     if (t || d) {
       onAdd({ date, category: categoryKey, text: t, done: d });
     } else if (existed && onRemove) {
@@ -60,10 +83,10 @@ export default function EntryForm({ categories, onAdd, onRemove, selectedDate, e
   };
 
   const updateCategoryText = (category: string, text: string) => {
-    setCategoryTexts(prev => ({ ...prev, [category]: text }));
+    setCategoryTexts((prev) => ({ ...prev, [category]: text }));
     // auto toggle on when user types something
     const willBeDone = text.trim() ? true : categoryDone[category];
-    if (text.trim()) setCategoryDone(prev => ({ ...prev, [category]: true }));
+    if (text.trim()) setCategoryDone((prev) => ({ ...prev, [category]: true }));
 
     // Debounce save for this category
     const timers = saveTimersRef.current;
@@ -74,7 +97,7 @@ export default function EntryForm({ categories, onAdd, onRemove, selectedDate, e
   };
 
   const toggleDone = (category: string) => {
-    setCategoryDone(prev => {
+    setCategoryDone((prev) => {
       const newDone = !prev[category];
       // Immediate save on toggle using latest text + new done value
       saveForCategory(category, categoryTexts[category] || "", newDone);
@@ -83,10 +106,12 @@ export default function EntryForm({ categories, onAdd, onRemove, selectedDate, e
   };
 
   const submit = () => {
-    categories.forEach(category => {
+    categories.forEach((category) => {
       const text = (categoryTexts[category] || "").trim();
       const done = !!categoryDone[category];
-      const existed = existingEntries.some(e => e.category === category && e.date === date);
+      const existed = existingEntries.some(
+        (e) => e.category === category && e.date === date
+      );
       if (text || done) {
         onAdd({ date, category, text, done });
       } else if (existed && onRemove) {
@@ -105,19 +130,25 @@ export default function EntryForm({ categories, onAdd, onRemove, selectedDate, e
           </div>
           <h2 className="text-xl font-semibold">每日記錄</h2>
         </div>
-        
+
         <div className="grid gap-6">
           {categories.map((category, index) => (
-            <div key={category} className="card p-4 space-y-3 animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+            <div
+              key={category}
+              className="card p-4 space-y-3 animate-fade-in"
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
               <div className="flex items-center justify-between">
-                <label className="text-lg font-medium text-foreground">{category}</label>
+                <label className="text-lg font-medium text-foreground">
+                  {category}
+                </label>
                 <button
                   type="button"
                   aria-label="toggle done"
                   onClick={() => toggleDone(category)}
                   className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold transition-all duration-200 hover:scale-105 ${
-                    categoryDone[category] 
-                      ? "bg-gradient-to-br from-green-500 to-emerald-500 text-white shadow-lg" 
+                    categoryDone[category]
+                      ? "bg-gradient-to-br from-green-500 to-emerald-500 text-white shadow-lg"
                       : "bg-muted border-2 border-dashed border-muted-foreground/30 hover:border-green-500/50"
                   }`}
                 >
@@ -125,23 +156,39 @@ export default function EntryForm({ categories, onAdd, onRemove, selectedDate, e
                 </button>
               </div>
               <textarea
+                rows={5}
+                className="
+                  input px-4 py-3 text-base leading-relaxed
+                  min-h-40 sm:min-h-36   /* ≈160px on mobile, a bit smaller on desktop */
+                "
                 value={categoryTexts[category] || ""}
                 onChange={(e) => updateCategoryText(category, e.target.value)}
                 placeholder={`今天在${category}方面做了什麼？`}
-                className="input min-h-[80px] resize-none text-base leading-relaxed"
-                rows={3}
               />
             </div>
           ))}
         </div>
-        
-        <div className="flex justify-center pt-4">
-          <button
-            onClick={submit}
-            className="btn btn-primary px-8 py-3 text-base font-medium shadow-lg hover:shadow-xl"
-          >
-            💾 儲存 {date} 的內容
-          </button>
+
+        <div className="flex justify-end">
+          <span className="text-xs text-muted-foreground flex items-center gap-1">
+            {/* visual hint only */}
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              className="opacity-70"
+            >
+              <path
+                d="M20 6L9 17l-5-5"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            已自動儲存
+          </span>
         </div>
       </section>
     );
@@ -163,10 +210,12 @@ export default function EntryForm({ categories, onAdd, onRemove, selectedDate, e
         </div>
         <h2 className="text-xl font-semibold">快速新增</h2>
       </div>
-      
+
       <div className="grid gap-4 md:grid-cols-[180px_200px_1fr_auto] items-end">
         <div className="space-y-2">
-          <label className="text-sm font-medium text-muted-foreground">日期</label>
+          <label className="text-sm font-medium text-muted-foreground">
+            日期
+          </label>
           <input
             type="date"
             value={date}
@@ -175,7 +224,9 @@ export default function EntryForm({ categories, onAdd, onRemove, selectedDate, e
           />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-muted-foreground">分類</label>
+          <label className="text-sm font-medium text-muted-foreground">
+            分類
+          </label>
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
@@ -187,7 +238,9 @@ export default function EntryForm({ categories, onAdd, onRemove, selectedDate, e
           </select>
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-muted-foreground">內容</label>
+          <label className="text-sm font-medium text-muted-foreground">
+            內容
+          </label>
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
