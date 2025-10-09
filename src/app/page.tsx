@@ -5,12 +5,19 @@ import DailyList from "@/components/DailyList";
 import CategoryView from "@/components/CategoryView";
 import TrackerView from "@/components/TrackerView";
 import DatePickerRow from "@/components/DatePickerRow";
-import type { Entry } from "@/lib/types";
+import CategoryManager from "@/components/CategoryManager";
+import type { Category, Entry } from "@/lib/types";
 import {
   loadEntries,
   saveEntries,
   loadCategories,
   saveCategories,
+} from "@/lib/storage";
+import {
+  // v2 storage API with migration
+  loadAllWithMigration,
+  saveEntriesV2,
+  saveCategoriesV2,
 } from "@/lib/storage";
 import { today } from "@/lib/date";
 
@@ -18,9 +25,10 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 
 export default function Home() {
   const [entries, setEntries] = useState<Entry[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [tab, setTab] = useState<"daily" | "category" | "tracker">("daily");
   const [date, setDate] = useState<string>(today());
+
   // keyboard nav for daily tab
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -36,25 +44,42 @@ export default function Home() {
     return () => window.removeEventListener("keydown", onKey);
   }, [date, tab]);
 
-  // boot from LocalStorage
+  // boot from LocalStorage (v2 with migration)
   useEffect(() => {
-    const loaded = loadEntries();
-    // one-time migration: if done is undefined but text exists, set done = true
-    const migrated = loaded.map((e) =>
+    // load v2; if v2 not present, it migrates from v1 (string categories)
+    const { entries: v2Entries, categories: v2Cats } =
+      loadAllWithMigration(uid);
+    // keep your one-time "done" migration logic
+    const migrated = v2Entries.map((e: Entry) =>
       typeof e.done === "boolean"
         ? e
         : { ...e, done: !!(e.text && e.text.trim()) }
     );
     setEntries(migrated);
-    const cs = loadCategories();
-    setCategories(cs.length ? cs : ["營養品", "演算法", "英文", "自媒體"]);
+    // seed defaults if categories are empty (create ids)
+    setCategories(
+      v2Cats.length
+        ? v2Cats
+        : ["營養品", "寫程式", "學英文", "自媒體"].map((name, order) => ({
+            id: uid(),
+            name,
+            order,
+          }))
+    );
   }, []);
-  useEffect(() => saveEntries(entries), [entries]);
-  useEffect(() => saveCategories(categories), [categories]);
+
+  // auto-save v2
+  useEffect(() => {
+    saveEntriesV2(entries); // persist entries v2
+  }, [entries]);
+
+  useEffect(() => {
+    saveCategoriesV2(categories); // persist categories v2
+  }, [categories]);
 
   const add = (d: {
     date: string;
-    category: string;
+    categoryId: string;
     text: string;
     done?: boolean;
   }) => {
@@ -63,18 +88,93 @@ export default function Home() {
       // Remove existing entry for same date and category
       const filtered = prev.filter(
         (existing) =>
-          !(existing.date === d.date && existing.category === d.category)
+          !(existing.date === d.date && existing.categoryId === d.categoryId)
       );
       return [e, ...filtered];
     });
     setDate(d.date); // 讓每日視圖立刻顯示
   };
 
-  const remove = (d: { date: string; category: string }) => {
+  const remove = (d: { date: string; categoryId: string }) => {
     setEntries((prev) =>
-      prev.filter((e) => !(e.date === d.date && e.category === d.category))
+      prev.filter((e) => !(e.date === d.date && e.categoryId === d.categoryId))
     );
     setDate(d.date);
+  };
+
+  // --- Category CRUD handlers (id-based) ---
+
+  // create a new category (dedupe by name.trim())
+  const createCategory = (name: string) => {
+    const n = name.trim();
+    if (!n) return;
+    // prevent duplicate names
+    if (categories.some((c) => c.name === n)) {
+      alert("分類名稱重複");
+      return;
+    }
+    const next = { id: uid(), name: n, order: categories.length };
+    setCategories((prev) => [...prev, next]);
+  };
+
+  // rename a category by id; also keep names unique
+  const renameCategory = (id: string, nextName: string) => {
+    const n = nextName.trim();
+    if (!n) return;
+    if (categories.some((c) => c.name === n && c.id !== id)) {
+      alert("已有相同名稱的分類");
+      return;
+    }
+    setCategories((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, name: n } : c))
+    );
+  };
+
+  // delete a category; if mergeToId provided, reassign entries, else remove them
+  // delete a category; if mergeToId provided, MERGE by date into the target
+  const deleteCategory = (sourceId: string, mergeToId?: string) => {
+    if (mergeToId && mergeToId !== sourceId) {
+      setEntries((prev) => {
+        // split entries
+        const src = prev.filter((e) => e.categoryId === sourceId);
+        const tgt = prev.filter((e) => e.categoryId === mergeToId);
+        const others = prev.filter(
+          (e) => e.categoryId !== sourceId && e.categoryId !== mergeToId
+        );
+
+        // map date -> (a cloned target entry)
+        const byDate = new Map<string, Entry>();
+        for (const t of tgt) byDate.set(t.date, { ...t });
+
+        // fold source entries into target-by-date
+        for (const s of src) {
+          const exist = byDate.get(s.date);
+          if (!exist) {
+            // no conflict: move s into target
+            byDate.set(s.date, { ...s, categoryId: mergeToId });
+          } else {
+            // conflict: merge text + OR the done flag, keep target id/date
+            byDate.set(s.date, {
+              ...exist,
+              text:
+                exist.text && s.text
+                  ? `${exist.text}\n${s.text}`
+                  : exist.text || s.text || "",
+              done: Boolean(exist.done || s.done),
+            });
+          }
+        }
+
+        // final list = others + merged target entries (unique per date)
+        return [...others, ...Array.from(byDate.values())];
+      });
+    } else {
+      // no merge target: drop all entries under the deleted category
+      setEntries((prev) => prev.filter((e) => e.categoryId !== sourceId));
+    }
+
+    // finally remove the category itself
+    setCategories((prev) => prev.filter((c) => c.id !== sourceId));
   };
 
   return (
@@ -171,7 +271,14 @@ export default function Home() {
         )}
 
         {tab === "category" && (
-          <div className="animate-slide-in">
+          <div className="animate-slide-in space-y-4">
+            <CategoryManager
+              categories={categories}
+              entries={entries}
+              onCreate={createCategory}
+              onRename={renameCategory}
+              onDelete={deleteCategory}
+            />
             <CategoryView categories={categories} entries={entries} />
           </div>
         )}

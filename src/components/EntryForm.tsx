@@ -1,17 +1,17 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { today } from "@/lib/date";
-import type { Entry } from "@/lib/types";
+import type { Entry, Category } from "@/lib/types";
 
 type Props = {
-  categories: string[];
+  categories: Category[]; // <-- use Category[]
   onAdd: (d: {
     date: string;
-    category: string;
+    categoryId: string;
     text: string;
     done?: boolean;
   }) => void;
-  onRemove?: (d: { date: string; category: string }) => void;
+  onRemove?: (d: { date: string; categoryId: string }) => void;
   selectedDate?: string;
   existingEntries?: Entry[];
 };
@@ -23,104 +23,117 @@ export default function EntryForm({
   selectedDate,
   existingEntries = [],
 }: Props) {
+  // shared date state (defaults to today, or the provided selectedDate)
   const [date, setDate] = useState(selectedDate || today());
+
+  // per-category text/done maps keyed by categoryId
   const [categoryTexts, setCategoryTexts] = useState<Record<string, string>>(
     {}
   );
   const [categoryDone, setCategoryDone] = useState<Record<string, boolean>>({});
-  // Per-category debounce timers for autosave in daily mode
+
+  // debounce timers per categoryId
   const saveTimersRef = useRef<Record<string, number>>({});
-  // Original form state - moved to top to avoid conditional hooks
-  const [category, setCategory] = useState(categories[0] ?? "");
+
+  // simple "quick add" form state for non-daily tabs (id-based)
+  const [categoryId, setCategoryId] = useState<string>(categories[0]?.id ?? "");
   const [text, setText] = useState("");
 
-  // Initialize category texts from existing entries
+  // keep categoryId valid when categories change
+  useEffect(() => {
+    if (!categories.some((c) => c.id === categoryId) && categories[0]) {
+      setCategoryId(categories[0].id);
+    }
+  }, [categories, categoryId]);
+
+  // initialize per-category text/done from existing entries for the current date
   useEffect(() => {
     const texts: Record<string, string> = {};
     const dones: Record<string, boolean> = {};
-    categories.forEach((cat) => {
+    for (const c of categories) {
       const existing = existingEntries.find(
-        (e) => e.category === cat && e.date === date
+        (e) => e.categoryId === c.id && e.date === date
       );
-      texts[cat] = existing?.text || "";
-      dones[cat] = existing?.done ?? false;
-    });
+      texts[c.id] = existing?.text ?? "";
+      dones[c.id] = existing?.done ?? false;
+    }
     setCategoryTexts(texts);
     setCategoryDone(dones);
   }, [categories, date, existingEntries]);
 
-  // Update date when selectedDate prop changes
+  // sync date if parent controls it (daily mode)
   useEffect(() => {
-    if (selectedDate) {
-      setDate(selectedDate);
-    }
+    if (selectedDate) setDate(selectedDate);
   }, [selectedDate]);
 
-  // Update category when categories change (for original form)
+  // clear any pending debounce timers on unmount
   useEffect(() => {
-    if (!categories.includes(category) && categories[0])
-      setCategory(categories[0]);
-  }, [categories, category]);
+    return () => {
+      const timers = saveTimersRef.current;
+      Object.values(timers).forEach((id) => clearTimeout(id));
+    };
+  }, []);
 
-  // Save helper used by autosave flows
+  // save helper (per categoryId)
   const saveForCategory = (
-    categoryKey: string,
+    cid: string,
     nextText?: string,
     nextDone?: boolean
   ) => {
     const t = (
-      nextText !== undefined ? nextText : categoryTexts[categoryKey] || ""
+      nextText !== undefined ? nextText : categoryTexts[cid] || ""
     ).trim();
-    const d = nextDone !== undefined ? nextDone : !!categoryDone[categoryKey];
+    const d = nextDone !== undefined ? nextDone : !!categoryDone[cid];
     const existed = existingEntries.some(
-      (e) => e.category === categoryKey && e.date === date
+      (e) => e.categoryId === cid && e.date === date
     );
     if (t || d) {
-      onAdd({ date, category: categoryKey, text: t, done: d });
+      onAdd({ date, categoryId: cid, text: t, done: d });
     } else if (existed && onRemove) {
-      onRemove({ date, category: categoryKey });
+      onRemove({ date, categoryId: cid });
     }
   };
 
-  const updateCategoryText = (category: string, text: string) => {
-    setCategoryTexts((prev) => ({ ...prev, [category]: text }));
-    // auto toggle on when user types something
-    const willBeDone = text.trim() ? true : categoryDone[category];
-    if (text.trim()) setCategoryDone((prev) => ({ ...prev, [category]: true }));
+  const updateCategoryText = (cid: string, value: string) => {
+    setCategoryTexts((prev) => ({ ...prev, [cid]: value }));
 
-    // Debounce save for this category
+    // auto-mark done when user types something (optional UX)
+    if (value.trim()) {
+      setCategoryDone((prev) => ({ ...prev, [cid]: true }));
+    }
+    const willBeDone = value.trim() ? true : categoryDone[cid];
+
+    // debounce save for this category
     const timers = saveTimersRef.current;
-    if (timers[category]) window.clearTimeout(timers[category]);
-    timers[category] = window.setTimeout(() => {
-      saveForCategory(category, text, willBeDone);
+    if (timers[cid]) clearTimeout(timers[cid]);
+    timers[cid] = window.setTimeout(() => {
+      saveForCategory(cid, value, willBeDone);
     }, 500);
   };
 
-  const toggleDone = (category: string) => {
+  const toggleDone = (cid: string) => {
     setCategoryDone((prev) => {
-      const newDone = !prev[category];
-      // Immediate save on toggle using latest text + new done value
-      saveForCategory(category, categoryTexts[category] || "", newDone);
-      return { ...prev, [category]: newDone };
+      const next = !prev[cid];
+      // save immediately using latest text and new done
+      saveForCategory(cid, categoryTexts[cid] || "", next);
+      return { ...prev, [cid]: next };
     });
   };
 
-  const submit = () => {
-    categories.forEach((category) => {
-      const text = (categoryTexts[category] || "").trim();
-      const done = !!categoryDone[category];
+  // commit all categories for the current date (if you still need a manual submit)
+  const submitAllForDate = () => {
+    for (const c of categories) {
+      const t = (categoryTexts[c.id] || "").trim();
+      const d = !!categoryDone[c.id];
       const existed = existingEntries.some(
-        (e) => e.category === category && e.date === date
+        (e) => e.categoryId === c.id && e.date === date
       );
-      if (text || done) {
-        onAdd({ date, category, text, done });
-      } else if (existed && onRemove) {
-        onRemove({ date, category });
-      }
-    });
+      if (t || d) onAdd({ date, categoryId: c.id, text: t, done: d });
+      else if (existed && onRemove) onRemove({ date, categoryId: c.id });
+    }
   };
 
-  // If we're in daily mode with selectedDate, show category text boxes
+  // DAILY MODE (selectedDate provided): render per-category text areas
   if (selectedDate) {
     return (
       <section className="card p-6 space-y-6">
@@ -132,38 +145,36 @@ export default function EntryForm({
         </div>
 
         <div className="grid gap-6">
-          {categories.map((category, index) => (
+          {categories.map((c, index) => (
             <div
-              key={category}
+              key={c.id}
               className="card p-4 space-y-3 animate-fade-in"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               <div className="flex items-center justify-between">
                 <label className="text-lg font-medium text-foreground">
-                  {category}
+                  {c.name}
                 </label>
                 <button
                   type="button"
                   aria-label="toggle done"
-                  onClick={() => toggleDone(category)}
+                  onClick={() => toggleDone(c.id)}
                   className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold transition-all duration-200 hover:scale-105 ${
-                    categoryDone[category]
+                    categoryDone[c.id]
                       ? "bg-gradient-to-br from-green-500 to-emerald-500 text-white shadow-lg"
                       : "bg-muted border-2 border-dashed border-muted-foreground/30 hover:border-green-500/50"
                   }`}
                 >
-                  {categoryDone[category] ? "✓" : "+"}
+                  {categoryDone[c.id] ? "✓" : "+"}
                 </button>
               </div>
+
               <textarea
                 rows={5}
-                className="
-                  input px-4 py-3 text-base leading-relaxed
-                  min-h-40 sm:min-h-36   /* ≈160px on mobile, a bit smaller on desktop */
-                "
-                value={categoryTexts[category] || ""}
-                onChange={(e) => updateCategoryText(category, e.target.value)}
-                placeholder={`今天在${category}方面做了什麼？`}
+                className="input px-4 py-3 text-base leading-relaxed min-h-40 sm:min-h-36"
+                value={categoryTexts[c.id] || ""}
+                onChange={(e) => updateCategoryText(c.id, e.target.value)}
+                placeholder={`今天在「${c.name}」方面做了什麼？`}
               />
             </div>
           ))}
@@ -171,7 +182,6 @@ export default function EntryForm({
 
         <div className="flex justify-end">
           <span className="text-xs text-muted-foreground flex items-center gap-1">
-            {/* visual hint only */}
             <svg
               width="12"
               height="12"
@@ -194,11 +204,11 @@ export default function EntryForm({
     );
   }
 
-  // Original form for other tabs
-
+  // QUICK-ADD (other tabs): single row form
   const submitOriginal = () => {
-    if (!text.trim() || !category) return;
-    onAdd({ date, category, text: text.trim() });
+    const t = text.trim();
+    if (!t || !categoryId) return;
+    onAdd({ date, categoryId, text: t });
     setText("");
   };
 
@@ -223,20 +233,24 @@ export default function EntryForm({
             className="input"
           />
         </div>
+
         <div className="space-y-2">
           <label className="text-sm font-medium text-muted-foreground">
             分類
           </label>
           <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
             className="input"
           >
             {categories.map((c) => (
-              <option key={c}>{c}</option>
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
             ))}
           </select>
         </div>
+
         <div className="space-y-2">
           <label className="text-sm font-medium text-muted-foreground">
             內容
@@ -249,6 +263,7 @@ export default function EntryForm({
             className="input"
           />
         </div>
+
         <button
           onClick={submitOriginal}
           className="btn btn-primary px-6 py-2.5 font-medium"
