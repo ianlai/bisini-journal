@@ -1,20 +1,39 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fafafa;
+  /* App background is not pure white; a soft tinted paper */
+  --background: #f6f7fb;            /* was #fafafa */
+
+  /* Text */
   --foreground: #0f172a;
+
+  /* Cards sit on the background, still white but we keep borders/shadow to float */
   --card: #ffffff;
   --card-foreground: #0f172a;
+
+  /* Brand */
   --primary: #8b5cf6;
   --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
+
+  /* Subtle containers / neutral buttons */
+  --secondary: #f2f5fb;            /* was #f1f5f9 */
   --secondary-foreground: #0f172a;
-  --muted: #f8fafc;
+
+  /* Muted backgrounds (headers, rails) */
+  --muted: #eef2f9;                /* was #f8fafc */
   --muted-foreground: #64748b;
-  --accent: #f1f5f9;
+
+  /* Accents */
+  --accent: #eef2f9;               /* was #f1f5f9 */
   --accent-foreground: #0f172a;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
+
+  /* Borders / Inputs */
+  --border: #dfe6f2;               /* was #e2e8f0 */
+  --input: #d7e0f0;                /* was #e2e8f0 */
+
+  /* New: input surface (for inputs/textarea/date) */
+  --surface: #f2f5fb;              /* <— new for light */
+
   --ring: #8b5cf6;
   --radius: 0.75rem;
 }
@@ -43,21 +62,31 @@
   :root {
     --background: #0a0a0a;
     --foreground: #f8fafc;
+
     --card: #1e293b;
     --card-foreground: #f8fafc;
+
     --primary: #a78bfa;
     --primary-foreground: #0f172a;
+
     --secondary: #1e293b;
     --secondary-foreground: #f8fafc;
+
     --muted: #1e293b;
     --muted-foreground: #94a3b8;
+
     --accent: #1e293b;
     --accent-foreground: #f8fafc;
+
     --border: #334155;
-    --input: #334155;
+    --input:  #334155;
+
+    /* Slightly raised input well for dark */
+    --surface: #162649; /* keep your navy input feel */
     --ring: #a78bfa;
   }
 }
+
 
 * {
   border-color: var(--border);
@@ -158,18 +187,25 @@ body {
   height: 2.5rem;
   width: 100%;
   border-radius: var(--radius);
-  border: 1px solid #1a2234;
+  /* border: 1px solid #1a2234;
   background: #162649;                     
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.6); */
+  border: 1px solid var(--input);               /* use theme var */
+  background: var(--surface);                   /* use theme var */
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.06);/* softer in light, dark gets var surface color */
   padding-block: 0.5rem;   /* ← vertical only */
   font-size: 0.875rem;
   transition: all 0.2s ease-in-out;
 }
 
+
 .input:focus {
   outline: none;
   border-color: var(--ring);
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.6), 0 0 0 2px rgb(139 92 246 / 0.3);
+  /* keep a subtle inner + ring glow; darker in dark due to surface color */
+  box-shadow:
+    inset 0 1px 2px rgb(0 0 0 / 0.08),
+    0 0 0 2px rgb(139 92 246 / 0.18);
 }
 
 /* Date input centering */
@@ -263,17 +299,25 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 }
 
 
-/* normalize mobile date input */
+/* Normalize mobile date input */
 input[type="date"] {
   -webkit-appearance: none;
   appearance: none;
   font-size: 16px; /* prevent iOS zoom */
+  text-align: center !important;
+  text-align-last: center;
 }
 
-/* hide the native calendar icon; wrapper handles clicks */
+/* Let wrapper handle the click area; keep indicator invisible */
 input[type="date"]::-webkit-calendar-picker-indicator {
   opacity: 0;
   pointer-events: none;
 }
+
 /* remove any old date-center hacks that override padding */
-textarea { padding: 0.75rem 1rem; line-height: 1.5; font-size: 16px; } /* py-3 px-4 */
+/* Textarea sizing & rhythm */
+textarea {
+  padding: 0.75rem 1rem;
+  line-height: 1.5;
+  font-size: 16px;
+}

@@ -65,24 +65,28 @@ export default function TrackerView({
 
   const PALETTES: Palette[] = [
     {
-      off: "bg-[#2d1b1b] border-[#3d2525]",
-      on: "bg-gradient-to-br from-red-400 to-red-500 border-red-400 shadow-md",
+      // red
+      off: "bg-red-50 border-red-100 dark:bg-[#2d1b1b] dark:border-[#3d2525]",
+      on: "bg-red-500 border-red-400 shadow-sm dark:bg-gradient-to-br dark:from-red-400 dark:to-red-500 dark:border-red-400 dark:shadow-md",
       legend: "bg-red-500 border-red-400",
     },
     {
-      off: "bg-[#2a2528] border-[#3a3337]",
-      on: "bg-gradient-to-br from-amber-400 to-amber-500 border-amber-400 shadow-md",
+      // amber
+      off: "bg-amber-50 border-amber-100 dark:bg-[#2a2528] dark:border-[#3a3337]",
+      on: "bg-amber-500 border-amber-400 shadow-sm dark:bg-gradient-to-br dark:from-amber-400 dark:to-amber-500 dark:border-amber-400 dark:shadow-md",
       legend: "bg-amber-500 border-amber-400",
     },
     {
-      off: "bg-[#1b1f2d] border-[#252a3d]",
-      on: "bg-gradient-to-br from-blue-400 to-blue-500 border-blue-400 shadow-md",
+      // blue
+      off: "bg-blue-50 border-blue-100 dark:bg-[#1b1f2d] dark:border-[#252a3d]",
+      on: "bg-blue-500 border-blue-400 shadow-sm dark:bg-gradient-to-br dark:from-blue-400 dark:to-blue-500 dark:border-blue-400 dark:shadow-md",
       legend: "bg-blue-500 border-blue-400",
     },
     {
-      off: "bg-[#251b2d] border-[#35253d]",
-      on: "bg-gradient-to-br from-purple-400 to-purple-500 border-purple-400 shadow-md",
-      legend: "bg-purple-500 border-purple-400",
+      // violet/purple
+      off: "bg-violet-50 border-violet-100 dark:bg-[#251b2d] dark:border-[#35253d]",
+      on: "bg-violet-500 border-violet-400 shadow-sm dark:bg-gradient-to-br dark:from-purple-400 dark:to-purple-500 dark:border-purple-400 dark:shadow-md",
+      legend: "bg-violet-500 border-violet-400",
     },
   ];
 
