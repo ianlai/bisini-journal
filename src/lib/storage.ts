@@ -1,4 +1,4 @@
-import type { Entry } from "./types";
+import type { Entry, Category } from "./types";
 
 const ENTRIES_KEY = "bisini_entries_v1";
 const CATS_KEY = "bisini_categories_v1";
@@ -23,68 +23,57 @@ export function saveCategories(cats: string[]) {
   localStorage.setItem(CATS_KEY, JSON.stringify(cats));
 }
 
-// --- v2 keys ---
-const ENTRIES_V2_KEY = "entries_v2";
-const CATS_V2_KEY = "categories_v2";
+type StorageLike = {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+};
 
-// --- v2 api ---
-export function loadEntriesV2(): any[] {
-  try { return JSON.parse(localStorage.getItem(ENTRIES_V2_KEY) || "[]"); }
-  catch { return []; }
-}
-export function saveEntriesV2(entries: any[]) {
-  localStorage.setItem(ENTRIES_V2_KEY, JSON.stringify(entries));
-}
-export function loadCategoriesV2(): any[] {
-  try { return JSON.parse(localStorage.getItem(CATS_V2_KEY) || "[]"); }
-  catch { return []; }
-}
-export function saveCategoriesV2(cats: any[]) {
-  localStorage.setItem(CATS_V2_KEY, JSON.stringify(cats));
-}
+// pick a safe storage in SSR
+const safeStorage: StorageLike =
+  typeof window !== "undefined" && window.localStorage
+    ? window.localStorage
+    : {
+        getItem: () => null,
+        setItem: () => {},
+        removeItem: () => {},
+      };
 
-// --- one-shot migration from v1 (string categories) to v2 (Category objects) ---
-// uid: a function to generate ids (inject your uid so it's consistent with the app)
-export function loadAllWithMigration(uid: () => string) {
-  // if v2 exists, just use it
-  const v2cats = loadCategoriesV2();
-  const v2entries = loadEntriesV2();
-  if (v2cats.length || v2entries.length) {
-    return { categories: v2cats, entries: v2entries };
+// generic helpers (no any)
+export function loadJSON<T>(key: string, fallback: T): T {
+  try {
+    const raw = safeStorage.getItem(key);
+    if (!raw) return fallback;
+    // parse as unknown then assert to T (you can add runtime validation later)
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
   }
-
-  // else: read v1
-  const v1entries = loadEntries();      // your existing v1 API (Entry had "category": string)
-  const v1cats = loadCategories();      // string[]
-
-  // build Category[] keeping original order; also include any names found only in entries
-  const seen = new Set<string>();
-  const orderedNames = [
-    ...v1cats.filter(n => (seen.has(n) ? false : (seen.add(n), true))),
-    ...v1entries
-      .map((e: any) => e.category)
-      .filter((n: string) => n && !seen.has(n) && (seen.add(n), true)),
-  ];
-
-  const nameToId = new Map<string, string>();
-  const categories = orderedNames.map((name, order) => {
-    const id = uid();
-    nameToId.set(name, id);
-    return { id, name, order };
-  });
-
-  // transform entries: category -> categoryId
-  const entries = v1entries.map((e: any) => ({
-    id: e.id,
-    date: e.date,
-    text: e.text,
-    done: e.done,
-    categoryId: nameToId.get(e.category)!, // assume mapped; "!" since we covered names above
-  }));
-
-  // persist v2 so next boot is fast
-  saveCategoriesV2(categories);
-  saveEntriesV2(entries);
-
-  return { categories, entries };
 }
+
+export function saveJSON<T>(key: string, value: T): void {
+  try {
+    safeStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // ignore quota / serialization errors
+  }
+}
+
+// concrete keys
+const KEYS = {
+  entriesV2: "bisini.entries.v2",
+  categoriesV2: "bisini.categories.v2",
+};
+
+// typed apis (no any)
+export const loadEntriesV2 = (): Entry[] =>
+  loadJSON<Entry[]>(KEYS.entriesV2, []);
+
+export const saveEntriesV2 = (list: Entry[]): void =>
+  saveJSON<Entry[]>(KEYS.entriesV2, list);
+
+export const loadCategoriesV2 = (): Category[] =>
+  loadJSON<Category[]>(KEYS.categoriesV2, []);
+
+export const saveCategoriesV2 = (list: Category[]): void =>
+  saveJSON<Category[]>(KEYS.categoriesV2, list);

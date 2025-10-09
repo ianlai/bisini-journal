@@ -8,15 +8,9 @@ import DatePickerRow from "@/components/DatePickerRow";
 import CategoryManager from "@/components/CategoryManager";
 import type { Category, Entry } from "@/lib/types";
 import {
-  loadEntries,
-  saveEntries,
-  loadCategories,
-  saveCategories,
-} from "@/lib/storage";
-import {
-  // v2 storage API with migration
-  loadAllWithMigration,
+  loadEntriesV2,
   saveEntriesV2,
+  loadCategoriesV2,
   saveCategoriesV2,
 } from "@/lib/storage";
 import { today } from "@/lib/date";
@@ -44,28 +38,33 @@ export default function Home() {
     return () => window.removeEventListener("keydown", onKey);
   }, [date, tab]);
 
-  // boot from LocalStorage (v2 with migration)
+  // boot from LocalStorage (pure v2, no v1 migration)
   useEffect(() => {
-    // load v2; if v2 not present, it migrates from v1 (string categories)
-    const { entries: v2Entries, categories: v2Cats } =
-      loadAllWithMigration(uid);
-    // keep your one-time "done" migration logic
-    const migrated = v2Entries.map((e: Entry) =>
+    // read v2 data
+    const v2Entries = loadEntriesV2();
+    const v2Cats = loadCategoriesV2();
+
+    // one-time "done" migration: if missing, infer from text
+    const migrated = v2Entries.map((e) =>
       typeof e.done === "boolean"
         ? e
         : { ...e, done: !!(e.text && e.text.trim()) }
     );
     setEntries(migrated);
-    // seed defaults if categories are empty (create ids)
-    setCategories(
-      v2Cats.length
-        ? v2Cats
-        : ["營養品", "寫程式", "學英文", "自媒體"].map((name, order) => ({
-            id: uid(),
-            name,
-            order,
-          }))
-    );
+
+    // seed default categories when storage is empty
+    if (v2Cats.length) {
+      setCategories(v2Cats);
+    } else {
+      const defaults = ["營養品", "寫程式", "學英文", "自媒體"].map(
+        (name, i) => ({
+          id: uid(), // generate stable id for new category
+          name,
+          order: i + 1,
+        })
+      );
+      setCategories(defaults); // your existing effect will persist them
+    }
   }, []);
 
   // auto-save v2
@@ -270,15 +269,30 @@ export default function Home() {
           </div>
         )}
 
+        {/* Category tab */}
         {tab === "category" && (
           <div className="animate-slide-in space-y-4">
-            <CategoryManager
-              categories={categories}
-              entries={entries}
-              onCreate={createCategory}
-              onRename={renameCategory}
-              onDelete={deleteCategory}
-            />
+            {/* collapsible manager */}
+            <details className="card p-4 sm:p-6">
+              <summary className="cursor-pointer select-none flex items-center justify-between">
+                <span className="font-semibold">分類管理</span>
+                <span className="text-sm text-muted-foreground">
+                  點擊展開 / 收合
+                </span>
+              </summary>
+              <div className="mt-4">
+                {/* Mount the manager inside the panel */}
+                <CategoryManager
+                  categories={categories}
+                  entries={entries}
+                  onCreate={createCategory}
+                  onRename={renameCategory}
+                  onDelete={deleteCategory}
+                />
+              </div>
+            </details>
+
+            {/* existing list view */}
             <CategoryView categories={categories} entries={entries} />
           </div>
         )}
