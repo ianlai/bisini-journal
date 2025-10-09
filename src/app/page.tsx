@@ -6,6 +6,8 @@ import CategoryView from "@/components/CategoryView";
 import TrackerView from "@/components/TrackerView";
 import DatePickerRow from "@/components/DatePickerRow";
 import CategoryManager from "@/components/CategoryManager";
+import Collapsible from "@/components/Collapsible";
+
 import type { Category, Entry } from "@/lib/types";
 import {
   loadEntriesV2,
@@ -22,6 +24,7 @@ export default function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [tab, setTab] = useState<"daily" | "category" | "tracker">("daily");
   const [date, setDate] = useState<string>(today());
+  const [showMgr, setShowMgr] = useState(false);
 
   // keyboard nav for daily tab
   useEffect(() => {
@@ -276,19 +279,24 @@ export default function Home() {
             <details className="card p-4 sm:p-6">
               <summary className="cursor-pointer select-none flex items-center justify-between">
                 <span className="font-semibold">分類管理</span>
-                <span className="text-sm text-muted-foreground">
+                <span
+                  className="text-sm text-muted-foreground"
+                  onClick={() => setShowMgr((v) => !v)}
+                >
                   點擊展開 / 收合
                 </span>
               </summary>
               <div className="mt-4">
                 {/* Mount the manager inside the panel */}
-                <CategoryManager
-                  categories={categories}
-                  entries={entries}
-                  onCreate={createCategory}
-                  onRename={renameCategory}
-                  onDelete={deleteCategory}
-                />
+                <Collapsible open={showMgr}>
+                  <CategoryManager
+                    categories={categories}
+                    entries={entries}
+                    onCreate={createCategory}
+                    onRename={renameCategory}
+                    onDelete={deleteCategory}
+                  />
+                </Collapsible>
               </div>
             </details>
 
